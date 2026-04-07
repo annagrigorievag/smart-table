@@ -1,53 +1,34 @@
-import {createComparison} from "../lib/compare.js";
-
-export function initFiltering(elements, indexes) {
-    // @todo: #4.3 — настроить компаратор
-    const comparison = createComparison(['seller', 'customer'], [
-        (source, target) => {
-            if (!target.seller) return true;
-            return source.seller === target.seller;
-        },
-        (source, target) => {
-            if (!target.customer) return true;
-            return source.customer === target.customer;
-        }
-    ]);
-
-    // @todo: #4.1 — заполнить выпадающие списки опциями
-    if (elements?.seller && indexes?.sellers) {
-        const sellers = [...new Set(indexes.sellers.map(item => item.seller))];
-        elements.seller.innerHTML = '<option value="">Все продавцы</option>';
-        sellers.forEach(seller => {
-            const option = document.createElement('option');
-            option.value = seller;
-            option.textContent = seller;
-            elements.seller.appendChild(option);
-        });
-    }
-    
-    if (elements?.customer && indexes?.customers) {
-        const customers = [...new Set(indexes.customers.map(item => item.customer))];
-        elements.customer.innerHTML = '<option value="">Все покупатели</option>';
-        customers.forEach(customer => {
-            const option = document.createElement('option');
-            option.value = customer;
-            option.textContent = customer;
-            elements.customer.appendChild(option);
-        });
+export function initFiltering(elements) {
+    const updateIndexes = (elements, indexes) => {
+        Object.keys(indexes).forEach((elementName) => {
+            elements[elementName].append(...Object.values(indexes[elementName]).map(name => {
+                const el = document.createElement('option');
+                el.textContent = name;
+                el.value = name;
+                return el;
+            }))
+        })
     }
 
-    return (data, state, action) => {
-        // @todo: #4.2 — обработать очистку поля
-        if (action?.name === 'reset') {
-            if (elements?.seller) elements.seller.value = '';
-            if (elements?.customer) elements.customer.value = '';
-        }
+    const applyFiltering = (query, state, action) => {
+        // код с обработкой очистки поля
+         
 
-        // @todo: #4.5 — отфильтровать данные используя компаратор
-        if (!state.seller && !state.customer) {
-            return data;
-        }
-        
-        return data.filter(item => comparison(item, state));
+        // @todo: #4.5 — отфильтровать данные, используя компаратор
+        const filter = {};
+        Object.keys(elements).forEach(key => {
+            if (elements[key]) {
+                if (['INPUT', 'SELECT'].includes(elements[key].tagName) && elements[key].value) { // ищем поля ввода в фильтре с непустыми данными
+                    filter[`filter[${elements[key].name}]`] = elements[key].value; // чтобы сформировать в query вложенный объект фильтра
+                }
+            }
+        })
+
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query; // если в фильтре что-то добавилось, применим к запросу
+    }
+
+    return {
+        updateIndexes,
+        applyFiltering
     }
 }
